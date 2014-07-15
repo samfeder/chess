@@ -88,11 +88,37 @@ class Board
   end
 end
 
+class BadMove < StandardMove
+end
+
 class Game
   attr_reader :board
 
-  def initialize
+  def initialize(white_player, black_player)
+    @white_player, @black_player = white_player, black_player
+    @white_player.color, @black_player.color = :white, :black
     @board = Board.new
+    play
+  end
+
+  def play
+    player = [@white_player, @black_player]
+    while !checkmate
+      begin
+        @board.render
+        piece = @board[player[0].select_piece]
+        raise BadOwnership if !piece ==
+        end_point = player[0].make_move
+        raise BadMove if !confirm_move(end_point))
+        player.rotate![1]
+      rescue BadMove
+        puts "You can not move there"
+        retry
+      rescue BadOwnership
+        puts "You do not have a piece in that location"
+        retry
+      end
+    end
     @board.render
   end
 
@@ -260,6 +286,79 @@ class Bishop < SlidingPiece
     @color == :white ? "|♗" : "|♝"
   end
 end
+
+#-------------------------
+#  Player Code
+#-------------------------
+class IllegalCoordinatesError < StandardError
+end
+
+
+class Player
+
+
+  #TODO FIX CONVERSION
+  COL_CONVERT = {
+   "A" => 1,
+   "B" => 2,
+   "C" => 3,
+   "D" => 4,
+   "E" => 5,
+   "F" => 6,
+   "G" => 7,
+   "H" => 8
+  }
+
+  attr_accessor :color
+
+  def initialize
+    @color = nil
+  end
+
+
+  def legal_move(pos)
+    if pos.length > 2
+      raise IllegalCoordinatesError
+    elsif (Integer(pos[1]) < 1) || (Integer(pos[1]) > 8)
+      raise IllegalCoordinatesError
+    elsif COL_CONVERT[pos[0]].nil?
+      raise IllegalCoordinatesError
+    end
+    nil
+  end
+
+  def make_move
+    begin
+      puts "Provide coordinates of piece to move (Col: A-H, Row: 1-8)"
+      start_point = gets.chomp.split("")
+      legal_move(start_point)
+      confirm_ownership(start_point)
+
+      puts "Provide coordinates of destination (Col: A-H, Row: 1-8)"
+      end_point = gets.chomp.split("")
+      legal_move(end_point)
+      confirm_move(start_move, end_point)
+
+      move_pos = [start_point , end_point]
+
+    rescue IllegalCoordinatesError
+      puts "Illegal coordinates provided"
+      retry
+
+    rescue ArgumentError
+      puts "Illegal coordinates provided"
+      retry
+    end
+
+  end
+
+  def confirm_ownership(start_point)
+
+  end
+
+
+end
+
 
 
 
