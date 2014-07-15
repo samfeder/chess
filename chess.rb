@@ -15,7 +15,7 @@ class Piece
   end
 
 
-  def moves
+  def moves(possible_moves=[])
 
   end
 
@@ -46,6 +46,15 @@ class SteppingPiece < Piece
 end
 
 class Pawn < Piece
+  MOVES_DELTA = [
+    [0,1],
+    [0,2],
+    [-1,1],
+    [1,1],
+    [0,-1],
+    [0,-2],
+    [1,-1],
+    [-1,-1]]
 
   def initialize(position)
     super(position)
@@ -66,6 +75,12 @@ class King < SteppingPiece
 end
 
 class Queen < SlidingPiece
+
+  def moves
+    DIRECTIONS = [[1,0], [2,0], [3,0], [1,1], [2,2]]
+
+
+  end
 
 end
 
