@@ -1,5 +1,8 @@
 # coding: UTF-8
 
+require_relative "./pieces.rb"
+#require_relative "./board.rb"
+
 class Board
   attr_accessor :grid, :jail
 
@@ -48,10 +51,24 @@ class Board
     @grid[row][col] = value
   end
 
+  def in_check?(color)
+    @grid.each do |row|
+      row.each do |piece|
+        next if piece.nil? || piece.color == color
+        king_pos = piece.position if piece.color == color && piece.is_a?("King")
+        if piece.color != color
+          attacking_moves << piece.moves
+        end
+      end
+    end
+    attacking_moves.include?(king_pos)
+  end
+
+
   def render
     print "\n\n"
-    @grid.each do |row|
-      print "\t\t"
+    @grid.each_with_index do |row,i|
+      print "\t\t#{i+1}"
       row.each do |obj|
        if obj.nil?
          print "| "
@@ -61,7 +78,10 @@ class Board
      end
      print "|"
      print "\n"
+
     end
+    print "\t\t "
+    ("A".."H").to_a.each {|letter| print " #{letter}"}
      print "\n"
      print "\n"
     nil
@@ -96,183 +116,6 @@ class Board
   end
 end
 
-
-
-
-#-------------------------
-#  Pieces Code
-#-------------------------
-
-class Piece
-
-  attr_accessor :position, :color
-
-  def initialize(board, position, color)
-    @board, @position, @color = board, position, color
-    @previous_positions = [] #shovel in whenever a move happens
-  end
-
-  def moves
-    potential_positions = []
-    self.send_moves.each do |(x, y)|
-      p " #{x}, #{y}"
-      p self.position
-      if (@board[[x,y]].nil? || @board[[x,y]].color != self.color) && on_the_board?(x,y)
-        potential_positions << [self.position[0] + x, self.position[1] + y]
-      else
-        next
-      #next if !on_the_board?(x,y) || @board[[x,y]].color == self.color
-      end
-    end
-    p potential_positions
-    #TODO Create logic to check if a piece is occupying position
-  end
-
-  def on_the_board?(x,y)
-    self.position[0] + x <= 7 && self.position[1] + y <= 7 && self.position[0] + x >= 0 && self.position[1] + y >= 0
-  end
-end
-
-class SlidingPiece < Piece
-
-
-  def moves
-    potential_positions = []
-    self.MOVES_DELTA.each do |(x, y)|
-      d_x, d_y = x, y
-      while on_the_board?(d_x, d_y)
-        if @board[d_x,d_y].nil?
-          potential_positions << [self.position[0] + d_x,
-                                  self.position[1] + d_y]
-          d_x, d_y = (d_x + x), (d_y + y)
-        elsif @board[d_x,d_y].color == self.color
-          break
-        else
-          potential_positions << [self.position[0] + d_x,
-                                  self.position[1] + d_y]
-          d_x, d_y = (d_x + x), (d_y + y)
-          break
-        end
-      end
-    end
-    potential_postions
-    #TODO Create logic to check if a piece is occupying position
-  end
-
-
-
-
-end
-
-class SteppingPiece < Piece
-
-
-end
-
-class Pawn < Piece
-
-  MOVES_DELTA = [
-    [0,1],
-    [0,2],
-    [-1,1],
-    [1,1],
-    [0,-1],
-    [0,-2],
-    [1,-1],
-    [-1,-1]]
-
-  def send_moves
-    MOVES_DELTA
-  end
-
-  def display
-    @color == :white ? "|♙" : "|♟"
-  end
-
-end
-
-class Knight < SteppingPiece
-  MOVES_DELTA = [
-    [1,2],
-    [1,-2],
-    [-1,-2],
-    [-1,2],
-    [2,1],
-    [2,-1],
-    [-2,-1],
-    [-2,1]
-  ]
-
-  def send_moves
-    MOVES_DELTA
-  end
-
-  def display
-    @color == :white ? "|♘" : "|♞"
-  end
-end
-
-class King < SteppingPiece
-  MOVES_DELTA = [
-    [0,1],
-    [-1,1],
-    [1,1],
-    [0,-1],
-    [1,-1],
-    [-1,-1],
-    [1,0],
-    [-1,0]
-  ]
-
-  def display
-    @color == :white ? "|♔" : "|♚"
-  end
-end
-
-class Queen < SlidingPiece
-  MOVES_DELTA = [
-    [0,1],
-    [-1,1],
-    [1,1],
-    [0,-1],
-    [1,-1],
-    [-1,-1],
-    [1,0],
-    [-1,0]
-  ]
-
-  def display
-    @color == :white ? "|♕" : "|♛"
-  end
-
-end
-
-class Rook < SlidingPiece
-  MOVES_DELTA = [
-    [0,1],
-    [0,-1],
-    [1,0],
-    [-1,0]
-  ]
-
-  def display
-    @color == :white ? "|♖" : "|♜"
-  end
-end
-
-class Bishop < SlidingPiece
-  MOVES_DELTA = [
-    [-1,1],
-    [1,1],
-    [1,-1],
-    [-1,-1]
-  ]
-
-  def display
-    @color == :white ? "|♗" : "|♝"
-  end
-end
-
 #-------------------------
 #  GAME Code
 #-------------------------
@@ -292,6 +135,7 @@ class Game
     while !checkmate?
       begin
         @board.render
+        in_check?(player[0].color)
         piece_pos = (player[0].select_piece)
         piece_obj = @board[piece_pos]
         raise BadOwnership if piece_obj.color != player[0].color
@@ -324,7 +168,7 @@ class Game
       @board[end_pos] = nil
     end
     @board[end_pos], @board[start_pos] = @board[start_pos], @board[end_pos]
-    @board[end_pos].position = end_pos #Do we need this?
+    @board[end_pos].position = end_pos
 
   end
 
