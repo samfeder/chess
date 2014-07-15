@@ -1,7 +1,7 @@
 # coding: UTF-8
 
 class Board
-  attr_accessor :board
+  attr_accessor :grid, :jail
 
   ROOK_POS = [
     [7,7],[0,0],
@@ -33,18 +33,24 @@ class Board
   KING_POS = [[4,0],[4,7]]
 
   def initialize
-    @board = Array.new(8){Array.new(8)}
+    @grid = Array.new(8){Array.new(8)}
     self.place_pieces
+    @jail = []
   end
 
   def [](pos)
-    row, col = pos
-    @board[row][col]
+    col, row = pos
+    @grid[row][col]
+  end
+
+  def []=(pos, value)
+    col, row = pos
+    @grid[row][col] = value
   end
 
   def render
     print "\n\n"
-    @board.each do |row|
+    @grid.each do |row|
       print "\t\t"
       row.each do |obj|
        if obj.nil?
@@ -56,77 +62,42 @@ class Board
      print "|"
      print "\n"
     end
+     print "\n"
+     print "\n"
     nil
   end
 
   def place_pieces
     BISHOP_POS.each do |(x,y)|
       color = y < 4 ? :white : :black
-      @board[y][x] = Bishop.new(self, [x,y], color)
+      @grid[y][x] = Bishop.new(self, [x,y], color)
     end
     ROOK_POS.each do |(x,y)|
       color = y < 4 ? :white : :black
-      @board[y][x] = Rook.new(self, [x,y], color)
+      @grid[y][x] = Rook.new(self, [x,y], color)
     end
     KING_POS.each do |(x,y)|
       color = y < 4 ? :white : :black
-      @board[y][x] = King.new(self, [x,y], color)
+      @grid[y][x] = King.new(self, [x,y], color)
     end
     QUEEN_POS.each do |(x,y)|
       color = y < 4 ? :white : :black
-      @board[y][x] = Queen.new(self, [x,y], color)
+      @grid[y][x] = Queen.new(self, [x,y], color)
     end
     KNIGHT_POS.each do |(x,y)|
       color = y < 4 ? :white : :black
-      @board[y][x] = Knight.new(self, [x,y], color)
+      @grid[y][x] = Knight.new(self, [x,y], color)
     end
     PAWN_POS.each do |(x,y)|
       color = y < 4 ? :white : :black
-      @board[y][x] = Pawn.new(self, [x,y], color)
+      @grid[y][x] = Pawn.new(self, [x,y], color)
     end
     nil
   end
 end
 
-class BadMove < StandardMove
-end
-
-class Game
-  attr_reader :board
-
-  def initialize(white_player, black_player)
-    @white_player, @black_player = white_player, black_player
-    @white_player.color, @black_player.color = :white, :black
-    @board = Board.new
-    play
-  end
-
-  def play
-    player = [@white_player, @black_player]
-    while !checkmate
-      begin
-        @board.render
-        piece = @board[player[0].select_piece]
-        raise BadOwnership if !piece ==
-        end_point = player[0].make_move
-        raise BadMove if !confirm_move(end_point))
-        player.rotate![1]
-      rescue BadMove
-        puts "You can not move there"
-        retry
-      rescue BadOwnership
-        puts "You do not have a piece in that location"
-        retry
-      end
-    end
-    @board.render
-  end
-
-  def make_move
-  end
 
 
-end
 
 #-------------------------
 #  Pieces Code
@@ -143,11 +114,17 @@ class Piece
 
   def moves
     potential_positions = []
-    self.MOVES_DELTA.each do |(x, y)|
-      next if on_the_board?(x,y) || @board[x,y].color == self.color
-      potential_positions << [self.position[0] + x, self.position[1] + y]
+    self.send_moves.each do |(x, y)|
+      p " #{x}, #{y}"
+      p self.position
+      if (@board[[x,y]].nil? || @board[[x,y]].color != self.color) && on_the_board?(x,y)
+        potential_positions << [self.position[0] + x, self.position[1] + y]
+      else
+        next
+      #next if !on_the_board?(x,y) || @board[[x,y]].color == self.color
+      end
     end
-    potential_postions
+    p potential_positions
     #TODO Create logic to check if a piece is occupying position
   end
 
@@ -193,6 +170,7 @@ class SteppingPiece < Piece
 end
 
 class Pawn < Piece
+
   MOVES_DELTA = [
     [0,1],
     [0,2],
@@ -202,6 +180,10 @@ class Pawn < Piece
     [0,-2],
     [1,-1],
     [-1,-1]]
+
+  def send_moves
+    MOVES_DELTA
+  end
 
   def display
     @color == :white ? "|♙" : "|♟"
@@ -220,6 +202,10 @@ class Knight < SteppingPiece
     [-2,-1],
     [-2,1]
   ]
+
+  def send_moves
+    MOVES_DELTA
+  end
 
   def display
     @color == :white ? "|♘" : "|♞"
@@ -288,25 +274,79 @@ class Bishop < SlidingPiece
 end
 
 #-------------------------
+#  GAME Code
+#-------------------------
+
+class Game
+  attr_reader :board
+
+  def initialize(white_player, black_player)
+    @white_player, @black_player = white_player, black_player
+    @white_player.color, @black_player.color = :white, :black
+    @board = Board.new
+    play
+  end
+
+  def play
+    player = [@white_player, @black_player]
+    while !checkmate?
+      begin
+        @board.render
+        piece_pos = (player[0].select_piece)
+        piece_obj = @board[piece_pos]
+        raise BadOwnership if piece_obj.color != player[0].color
+
+        end_pos = player[0].find_move
+        raise BadMove if !piece_obj.moves.include?(end_pos)
+
+        make_move(piece_pos, end_pos, player)
+
+        player.rotate![1]
+      rescue BadMove
+        puts "You can not move there"
+        retry
+      rescue BadOwnership
+        puts "You do not have a piece in that location"
+        retry
+      end
+    end
+    @board.render
+  end
+
+  def checkmate?
+    false #TODO FINISH
+  end
+
+  def make_move(start_pos,end_pos, player_arr)
+    if !@board[end_pos].nil?
+      puts "#{player_arr[0].color}'s #{@board[start_pos].class} took #{player_arr[1].color}'s #{@board[end_pos].class}!"
+      @board.jail << @board[end_pos].class
+      @board[end_pos] = nil
+    end
+    @board[end_pos], @board[start_pos] = @board[start_pos], @board[end_pos]
+    @board[end_pos].position = end_pos #Do we need this?
+
+  end
+
+
+end
+
+#-------------------------
 #  Player Code
 #-------------------------
-class IllegalCoordinatesError < StandardError
-end
 
 
 class Player
 
-
-  #TODO FIX CONVERSION
   COL_CONVERT = {
-   "A" => 1,
-   "B" => 2,
-   "C" => 3,
-   "D" => 4,
-   "E" => 5,
-   "F" => 6,
-   "G" => 7,
-   "H" => 8
+   "A" => 0,
+   "B" => 1,
+   "C" => 2,
+   "D" => 3,
+   "E" => 4,
+   "F" => 5,
+   "G" => 6,
+   "H" => 7
   }
 
   attr_accessor :color
@@ -327,38 +367,50 @@ class Player
     nil
   end
 
-  def make_move
+  def select_piece
     begin
       puts "Provide coordinates of piece to move (Col: A-H, Row: 1-8)"
       start_point = gets.chomp.split("")
       legal_move(start_point)
-      confirm_ownership(start_point)
 
-      puts "Provide coordinates of destination (Col: A-H, Row: 1-8)"
-      end_point = gets.chomp.split("")
-      legal_move(end_point)
-      confirm_move(start_move, end_point)
-
-      move_pos = [start_point , end_point]
-
+      start_point = [COL_CONVERT[start_point[0]],Integer(start_point[1]) - 1]
     rescue IllegalCoordinatesError
       puts "Illegal coordinates provided"
       retry
-
     rescue ArgumentError
+      puts "Second value needs to be an integer"
+      retry
+    end
+    start_point
+  end
+
+  def find_move
+    begin
+      puts "Provide coordinates of destination (Col: A-H, Row: 1-8)"
+      end_point = gets.chomp.split("")
+      legal_move(end_point)
+
+      end_point = [COL_CONVERT[end_point[0]],Integer(end_point[1])-1]
+    rescue IllegalCoordinatesError
       puts "Illegal coordinates provided"
+      retry
+    rescue ArgumentError
+      puts "Second value needs to be an integer"
       retry
     end
 
+    end_point
   end
-
-  def confirm_ownership(start_point)
-
-  end
-
-
 end
 
+#------------------------
+#------------------------
+#
 
-
+class IllegalCoordinatesError < StandardError
+end
+class BadMove < StandardError
+end
+class BadOwnership < StandardError
+end
 
