@@ -52,6 +52,8 @@ class Board
   end
 
   def in_check?(color)
+    attacking_moves = []
+    king_pos = []
     @grid.each do |row|
       row.each do |piece|
         next if piece.nil? || piece.color == color
@@ -135,7 +137,7 @@ class Game
     while !checkmate?
       begin
         @board.render
-        in_check?(player[0].color)
+        @board.in_check?(player[0].color)
         piece_pos = (player[0].select_piece)
         piece_obj = @board[piece_pos]
         raise BadOwnership if piece_obj.color != player[0].color

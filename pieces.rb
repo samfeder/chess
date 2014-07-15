@@ -15,10 +15,10 @@ class Piece
     potential_positions = []
     self.send_moves.each do |(x, y)|
       p " #{x}, #{y}"
-      p self.position
-      p @board[[x,y]]
+      #p self.position
+      #p @board[[x,y]]
       #p @board[[x,y]].color != self.color
-      p on_the_board?(self.position[0] + x, self.position[1] + y)
+      #p on_the_board?(self.position[0] + x, self.position[1] + y)
       if (@board[[x,y]].nil? || @board[[x,y]].color != self.color) &&
          on_the_board?(self.position[0] + x, self.position[1] + y)
         potential_positions << [self.position[0] + x, self.position[1] + y]
@@ -36,17 +36,16 @@ end
 
 class SlidingPiece < Piece
 
-
   def moves
     potential_positions = []
-    self.MOVES_DELTA.each do |(x, y)|
+    self.send_moves.each do |(x, y)|
       d_x, d_y = x, y
       while on_the_board?(d_x, d_y)
-        if @board[d_x,d_y].nil?
+        if @board[[d_x,d_y]].nil?
           potential_positions << [self.position[0] + d_x,
                                   self.position[1] + d_y]
           d_x, d_y = (d_x + x), (d_y + y)
-        elsif @board[d_x,d_y].color == self.color
+        elsif @board[[d_x,d_y]].color == self.color
           break
         else
           potential_positions << [self.position[0] + d_x,
@@ -56,7 +55,7 @@ class SlidingPiece < Piece
         end
       end
     end
-    potential_postions
+    potential_positions
     #TODO Create logic to check if a piece is occupying position
   end
 
@@ -110,6 +109,33 @@ class Pawn < Piece
     p potential_positions
   end
 
+  def send_moves
+    arr = []
+    # arr += [1,1] if !@board[self.position[0] + 1, self.position[1] + 1].nil? &&
+    #   @board[self.position[0] + 1, self.position[1] + 1].color != :black
+    # arr += [-1,1] if !@board[self.position[0] + 1, self.position[1] - 1].nil? &&
+    #   @board[self.position[0] - 1, self.position[1] + 1].color != :black
+    # arr += [-1,-1] if !@board[self.position[0] + 1, self.position[1] + 1].nil? &&
+    #   @board[self.position[0] - 1, self.position[1] - 1].color != :white
+    # arr += [1,-1] if !@board[self.position[0] + 1, self.position[1] - 1].nil? &&
+    #   @board[self.position[0] + 1, self.position[1] - 1].color != :white
+    if self.color == :black && self.position[1] == 6
+      arr += FIRST_DELTA_B
+      #check for attack     #ATTACK_DELTA_B
+    elsif self.color == :white && self.position[1] == 1
+      arr += FIRST_DELTA_W
+      #check for attack     #ATTACK_DELTA_W
+    elsif self.color == :black
+      arr += MOVES_DELTA_B
+      #check for attack     #ATTACK_DELTA_B
+    elsif self.color == :white
+      arr += MOVES_DELTA_W
+      #check for attack     #ATTACK_DELTA_W
+    end
+    p arr
+    arr
+  end
+
   def on_the_board?(x,y)
     self.position[0] + x <= 7 && self.position[1] + y <= 7 && self.position[0] + x >= 0 && self.position[1] + y >= 0
   end
@@ -152,6 +178,10 @@ class King < SteppingPiece
     [-1,0]
   ]
 
+  def send_moves
+    MOVES_DELTA
+  end
+
   def display
     @color == :white ? "|♔" : "|♚"
   end
@@ -169,6 +199,10 @@ class Queen < SlidingPiece
     [-1,0]
   ]
 
+  def send_moves
+    MOVES_DELTA
+  end
+
   def display
     @color == :white ? "|♕" : "|♛"
   end
@@ -183,6 +217,10 @@ class Rook < SlidingPiece
     [-1,0]
   ]
 
+  def send_moves
+    MOVES_DELTA
+  end
+
   def display
     @color == :white ? "|♖" : "|♜"
   end
@@ -195,6 +233,10 @@ class Bishop < SlidingPiece
     [1,-1],
     [-1,-1]
   ]
+
+  def send_moves
+    MOVES_DELTA
+  end
 
   def display
     @color == :white ? "|♗" : "|♝"
