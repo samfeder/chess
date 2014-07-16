@@ -11,25 +11,6 @@ class Piece
     @previous_positions = [] #shovel in whenever a move happens
   end
 
-  def moves
-    potential_positions = []
-    self.send_moves.each do |(x, y)|
-      #p " #{x}, #{y}"
-      #p self.position
-      #p @board[[x,y]]
-      #p @board[[x,y]].color != self.color
-      #p on_the_board?(self.position[0] + x, self.position[1] + y)
-      if (@board[[x,y]].nil? || @board[[x,y]].color != self.color) &&
-         on_the_board?(self.position[0] + x, self.position[1] + y)
-        potential_positions << [self.position[0] + x, self.position[1] + y]
-      else
-        next
-      end
-    end
-    p "#{self.class}"
-    p potential_positions
-  end
-
   def on_the_board?(x,y)
      x <= 7 &&  y <= 7 &&  x >= 0 && y >= 0
   end
@@ -39,37 +20,58 @@ end
 
 
 class SlidingPiece < Piece
+  HORI_MOVES = [
+    [[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0]],
+    [[-1,0],[-2,0],[-3,0],[-4,0],[-5,0],[-6,0],[-7,0]]
+  ]
+
+  VERT_MOVES = [
+    [[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7]],
+    [[0,-1],[0,-2],[0,-3],[0,-4],[0,-5],[0,-6],[0,-7]]
+  ]
+  DIAG_MOVES = [
+    [[1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7]],
+    [[-1,-1],[-2,-2],[-3,-3],[-4,-4],[-5,-5],[-6,-6],[-7,-7]],
+    [[-1,1],[-2,2],[-3,3],[-4,4],[-5,5],[-6,6],[-7,7]],
+    [[1,-1],[2,-2],[3,-3],[4,-4],[5,-5],[6,-6],[7,-7]],
+  ]
+
 
   def moves
-    potential_positions = []
-    self.send_moves.each do |(x, y)|
-      d_x, d_y = x, y
-      while on_the_board?(d_x, d_y)
-        if @board[[d_x,d_y]].nil?
-          potential_positions << [self.position[0] + d_x,
-                                  self.position[1] + d_y]
-          d_x, d_y = (d_x + x), (d_y + y)
-        elsif @board[[d_x,d_y]].color == self.color
-          break
-        else
-          potential_positions << [self.position[0] + d_x,
-                                  self.position[1] + d_y]
-          d_x, d_y = (d_x + x), (d_y + y)
-          break
-        end
+    legal_moves = []
+    moves_arr = send_moves
+    moves_arr.each do |directions|
+      directions.each do |move|
+        move = [self.position[0] + move[0], self.position[1] + move[1]]
+        next if !on_the_board?(move[0], move[1])
+        break if !@board[move].nil? && @board[move].color == self.color
+        legal_moves << move
       end
     end
-    p "#{self.class}"
-    p potential_positions
-    #TODO Create logic to check if a piece is occupying position
+    legal_moves
   end
-
-
 
 
 end
 
 class SteppingPiece < Piece
+
+  def moves
+    legal_moves = []
+    moves_arr = send_moves
+
+    moves_arr.each do |move|
+      move = [self.position[0] + move[0], self.position[1] + move[1]]
+      next if !on_the_board?(move[0], move[1])
+      next if !@board[move].nil? && @board[move].color == self.color
+      legal_moves << move
+    end
+    legal_moves
+  end
+
+  def on_the_board?(x,y)
+     x <= 7 &&  y <= 7 &&  x >= 0 && y >= 0
+  end
 
 
 end
@@ -127,33 +129,6 @@ class Pawn < Piece
     legal_moves
   end
 
-  def send_moves
-    arr = []
-    # arr += [1,1] if !@board[self.position[0] + 1, self.position[1] + 1].nil? &&
-    #   @board[self.position[0] + 1, self.position[1] + 1].color != :black
-    # arr += [-1,1] if !@board[self.position[0] + 1, self.position[1] - 1].nil? &&
-    #   @board[self.position[0] - 1, self.position[1] + 1].color != :black
-    # arr += [-1,-1] if !@board[self.position[0] + 1, self.position[1] + 1].nil? &&
-    #   @board[self.position[0] - 1, self.position[1] - 1].color != :white
-    # arr += [1,-1] if !@board[self.position[0] + 1, self.position[1] - 1].nil? &&
-    #   @board[self.position[0] + 1, self.position[1] - 1].color != :white
-    if self.color == :black && self.position[1] == 6
-      arr += FIRST_DELTA_B
-      #check for attack     #ATTACK_DELTA_B
-    elsif self.color == :white && self.position[1] == 1
-      arr += FIRST_DELTA_W
-      #check for attack     #ATTACK_DELTA_W
-    elsif self.color == :black
-      arr += MOVES_DELTA_B
-      #check for attack     #ATTACK_DELTA_B
-    elsif self.color == :white
-      arr += MOVES_DELTA_W
-      #check for attack     #ATTACK_DELTA_W
-    end
-    p arr
-    arr
-  end
-
   def display
     @color == :white ? "|♙" : "|♟"
   end
@@ -203,19 +178,11 @@ class King < SteppingPiece
 end
 
 class Queen < SlidingPiece
-  MOVES_DELTA = [
-    [0,1],
-    [-1,1],
-    [1,1],
-    [0,-1],
-    [1,-1],
-    [-1,-1],
-    [1,0],
-    [-1,0]
-  ]
+
+
 
   def send_moves
-    MOVES_DELTA
+    DIAG_MOVES + VERT_MOVES + HORI_MOVES
   end
 
   def display
@@ -225,15 +192,9 @@ class Queen < SlidingPiece
 end
 
 class Rook < SlidingPiece
-  MOVES_DELTA = [
-    [0,1],
-    [0,-1],
-    [1,0],
-    [-1,0]
-  ]
 
   def send_moves
-    MOVES_DELTA
+    VERT_MOVES + HORI_MOVES
   end
 
   def display
@@ -242,18 +203,52 @@ class Rook < SlidingPiece
 end
 
 class Bishop < SlidingPiece
-  MOVES_DELTA = [
-    [-1,1],
-    [1,1],
-    [1,-1],
-    [-1,-1]
-  ]
 
   def send_moves
-    MOVES_DELTA
+    DIAG_MOVES
   end
 
   def display
     @color == :white ? "|♗" : "|♝"
   end
 end
+
+
+
+#
+# legal_moves = []
+# moves_arr = send_moves
+# #[[-1,0],[1,0],[0,1]]
+# #[0,1]--> [0,2] --> [0,3]
+# moves_arr.each do |original_move|
+#   p
+#   multiply = 1
+#   new_move = [self.position[0] + (original_move[0]),
+#               self.position[1] + (original_move[1])]
+#
+#   next if !on_the_board?(new_move[0],new_move[1])
+#   p "Evaluating #{new_move}"
+#   while @board[new_move] == nil
+#
+#     legal_moves += [new_move.dup]
+#     p "in while: #{legal_moves}"
+#     multiply += 1
+#     new_move[0] = original_move[0] * multiply
+#     new_move[1] = original_move[1] * multiply
+#     "breaking loop before #{new_move}" if !on_the_board?(new_move[0],new_move[1])
+#     break if !on_the_board?(new_move[0],new_move[1])
+#
+#   end
+#   "breaking loop before #{new_move}"
+#   if on_the_board?(new_move[0],new_move[1]) &&
+#      !@board[new_move].nil? &&
+#      @board[new_move].color != self.color
+#
+#     legal_moves += [new_move.dup]
+#     p "in if: #{legal_moves}"
+#   end
+#
+# end
+# #p "#{self.class} Legal moves: #{legal_moves}"
+# p "legal moves: #{self.class}#{legal_moves}"
+# legal_moves

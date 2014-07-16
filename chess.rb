@@ -56,10 +56,11 @@ class Board
     king_pos = []
     @grid.each do |row|
       row.each do |piece|
-        next if piece.nil? || piece.color == color
-        king_pos = piece.position if piece.color == color && piece.is_a?("King")
+        next if piece.nil?
+        king_pos = piece.position if piece.color == color && piece.is_a?(King)
+        next if piece.color == color
         if piece.color != color
-          attacking_moves << piece.moves
+          attacking_moves += piece.moves
         end
       end
     end
@@ -137,9 +138,11 @@ class Game
     while !checkmate?
       begin
         @board.render
-        @board.in_check?(player[0].color)
+        if @board.in_check?(player[0].color)
+          puts "#{player[0].upcase} IS IN CHECK!!!!"
         piece_pos = (player[0].select_piece)
         piece_obj = @board[piece_pos]
+        p "#{piece_obj.class} moves: #{piece_obj.moves}"
         raise BadOwnership if (piece_obj.color != player[0].color) || piece_obj.nil?
 
         end_pos = player[0].find_move
