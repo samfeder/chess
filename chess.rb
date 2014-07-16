@@ -140,7 +140,7 @@ class Game
         @board.in_check?(player[0].color)
         piece_pos = (player[0].select_piece)
         piece_obj = @board[piece_pos]
-        raise BadOwnership if piece_obj.color != player[0].color
+        raise BadOwnership if (piece_obj.color != player[0].color) || piece_obj.nil?
 
         end_pos = player[0].find_move
         raise BadMove if !piece_obj.moves.include?(end_pos)
@@ -260,3 +260,6 @@ end
 class BadOwnership < StandardError
 end
 
+if __FILE__ == $PROGRAM_NAME
+  game = Game.new(Player.new, Player.new)
+end

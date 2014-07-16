@@ -14,7 +14,7 @@ class Piece
   def moves
     potential_positions = []
     self.send_moves.each do |(x, y)|
-      p " #{x}, #{y}"
+      #p " #{x}, #{y}"
       #p self.position
       #p @board[[x,y]]
       #p @board[[x,y]].color != self.color
@@ -26,13 +26,17 @@ class Piece
         next
       end
     end
+    p "#{self.class}"
     p potential_positions
   end
 
   def on_the_board?(x,y)
      x <= 7 &&  y <= 7 &&  x >= 0 && y >= 0
   end
+
 end
+
+
 
 class SlidingPiece < Piece
 
@@ -55,7 +59,8 @@ class SlidingPiece < Piece
         end
       end
     end
-    potential_positions
+    p "#{self.class}"
+    p potential_positions
     #TODO Create logic to check if a piece is occupying position
   end
 
@@ -72,41 +77,54 @@ end
 class Pawn < Piece
 
   MOVES_DELTA_W = [
-    [0,-1]
-  ]
-
-  MOVES_DELTA_B = [
     [0,1]
   ]
 
-  ATTACK_DELTA_W = [
-    [-1,-1],[1,-1]
+  MOVES_DELTA_B = [
+    [0,-1]
   ]
 
-  ATTACK_DELTA_B = [
+  ATTACK_DELTA_W = [
     [1,1],[-1,1]
   ]
 
-  FIRST_DELTA_B = [
-    [0,2],[0,1]
+  ATTACK_DELTA_B = [
+    [-1,-1],[1,-1]
   ]
 
-  FIRST_DELTA_W = [
-    [0,-2],[0,-1]
-  ]
+  FIRST_DELTA_B = [0,-2]
+
+  FIRST_DELTA_W = [0,2]
+
 
   def moves
-    potential_positions = []
-    self.send_moves.each do |(x, y)|
-      p " #{x}, #{y}"
-      p self.position
-      if (@board[[x,y]].nil? || @board[[x,y]].color != self.color) && on_the_board?(x,y)
-        potential_positions << [self.position[0] + x, self.position[1] + y]
-      else
-        next
-      end
+    legal_moves = []
+    attack_arr = []
+    moves_arr = []
+    if self.color == :white
+      moves_arr = MOVES_DELTA_W
+      moves_arr += [FIRST_DELTA_W] if self.position[1] == 1
+      attack_arr = ATTACK_DELTA_W
+    else
+      moves_arr = MOVES_DELTA_B
+      moves_arr += [FIRST_DELTA_B] if self.position[1] == 6
+      attack_arr = ATTACK_DELTA_B
     end
-    p potential_positions
+    moves_arr.each do |move|
+      move = [self.position[0] + move[0], self.position[1] + move[1]]
+      next if !on_the_board?(move[0], move[1])
+      next if !@board[move].nil?
+      legal_moves << move
+    end
+
+    attack_arr.each do |move|
+      move = [self.position[0] + move[0], self.position[1] + move[1]]
+      next if !on_the_board?(move[0], move[1])
+      next if @board[move].nil?
+      next if @board[move].color == self.color
+      legal_moves << move
+    end
+    legal_moves
   end
 
   def send_moves
@@ -136,9 +154,6 @@ class Pawn < Piece
     arr
   end
 
-  def on_the_board?(x,y)
-    self.position[0] + x <= 7 && self.position[1] + y <= 7 && self.position[0] + x >= 0 && self.position[1] + y >= 0
-  end
   def display
     @color == :white ? "|♙" : "|♟"
   end
