@@ -15,6 +15,12 @@ class Piece
      x <= 7 &&  y <= 7 &&  x >= 0 && y >= 0
   end
 
+  # def move_into_check?(pos)
+  #   new_board = @board.dd_board
+  #   new_board[self.position] = new_board[pos]
+  #   new_board.in_check?(self.color)
+  # end
+
 end
 
 
@@ -39,6 +45,7 @@ class SlidingPiece < Piece
 
   def moves
     legal_moves = []
+    check_moves = []
     moves_arr = send_moves
     moves_arr.each do |directions|
       directions.each do |move|
@@ -46,8 +53,11 @@ class SlidingPiece < Piece
         next if !on_the_board?(move[0], move[1])
         break if !@board[move].nil? && @board[move].color == self.color
         legal_moves << move
+        break if !@board[move].nil? && @board[move].color != self.color
       end
+
     end
+
     legal_moves
   end
 
