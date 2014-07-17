@@ -35,9 +35,9 @@ class Board
   QUEEN_POS = [[3,0],[3,7]]
   KING_POS = [[4,0],[4,7]]
 
-  def initialize
+  def initialize(fill_board=true)
     @grid = Array.new(8){Array.new(8)}
-    self.place_pieces
+    self.place_pieces if fill_board == true
     @jail = []
   end
 
@@ -49,6 +49,19 @@ class Board
   def []=(pos, value)
     col, row = pos
     @grid[row][col] = value
+  end
+
+  def pieces
+    @grid.flatten.compact
+  end
+
+  def dup
+    new_board = Board.new(false)
+
+    pieces.each do |piece|
+      piece.class.new(piece.color, new_board, piece.position)
+    end
+    new_board
   end
 
   def in_check?(color)
@@ -68,28 +81,25 @@ class Board
   end
 
   def checkmate?(color)
-    @attacking_moves = []
-    valid_moves = []
-    king_pos = []
-    @grid.each do |row|
-      row.each do |piece|
-        next if piece.nil?
-        next if piece.color == color
-        if piece.color != color
-          @attacking_moves += piece.moves
-        end
-      end
+    p pieces
+    return false unless in_check?(color)
+
+    pieces.select { |p| p.color == color }.all? do |piece|
+      piece.valid_moves.empty?
     end
-    @attacking_moves.each do |move|
-       valid_moves << move if moves_into_check?(move) == false
-    end
-    puts "Game over! #{color} loses!" if valid_moves.empty?
-    valid_moves.empty?
   end
 
-  def moves_into_check?(start_pos, end_pos) #once this evaluates truthiness, will determine checkmate... GAHHH! Must do each move and then undo each move.
-    true
+  def make_move(start_pos,end_pos, player_arr)
+    if !self[end_pos].nil?
+      puts "#{player_arr[0].color}'s #{self[start_pos].class} took #{player_arr[1].color}'s #{@board[end_pos].class}!"
+      @jail << self[end_pos].class
+      self[end_pos] = nil
+    end
+    self[end_pos], self[start_pos] = self[start_pos], self[end_pos]
+    self[end_pos].position = end_pos if !self[end_pos].nil?
+
   end
+
 
   def render
     print "\n\n"
@@ -158,7 +168,7 @@ class Game
 
   def play
     player = [@white_player, @black_player]
-    while !board.checkmate?(player[0].color)
+    while !@board.checkmate?(player[0].color)
       begin
         jailing = false
         @board.render
@@ -169,7 +179,7 @@ class Game
         end_pos = player[0].find_move
         raise BadMove if !piece_obj.moves.include?(end_pos)
         jailing = true if @board[end_pos] != nil
-        make_move(piece_pos, end_pos, player)
+        @board.make_move(piece_pos, end_pos, player)
         puts @board.in_check?(player[0].color)
         puts "#{player[1].color} is now in check!" if @board.in_check?(player[1].color)
         raise CheckMove if @board.in_check?(player[0].color)
@@ -189,18 +199,6 @@ class Game
     @board.render
   end
 
-
-
-  def make_move(start_pos,end_pos, player_arr)
-    if !@board[end_pos].nil?
-      puts "#{player_arr[0].color}'s #{@board[start_pos].class} took #{player_arr[1].color}'s #{@board[end_pos].class}!"
-      @board.jail << @board[end_pos].class
-      @board[end_pos] = nil
-    end
-    @board[end_pos], @board[start_pos] = @board[start_pos], @board[end_pos]
-    @board[end_pos].position = end_pos
-
-  end
 
   def undo_move(start_pos,end_pos, player_arr, jailing)
     @board[end_pos], @board[start_pos] = @board[start_pos], @board[end_pos]

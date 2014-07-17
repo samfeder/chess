@@ -3,7 +3,7 @@
 #-------------------------
 
 class Piece
-
+  attr
   attr_accessor :position, :color
 
   def initialize(board, position, color)
@@ -21,6 +21,15 @@ class Piece
   #   new_board.in_check?(self.color)
   # end
 
+  def valid_moves
+    self.moves.reject { |to_pos| move_into_check?(to_pos) }
+  end
+
+  def move_into_check?(to_pos)
+    test_board = @board.dup
+    test_board.make_move(@position, to_pos, @color)
+    test_board.in_check?(@color)
+  end
 end
 
 
